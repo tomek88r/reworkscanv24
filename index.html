@@ -1,0 +1,1777 @@
+﻿
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>R/S - Rework Scan</title>
+  
+  <!-- Firebase SDK (Auth + Realtime Database) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  
+  <style>
+    /* ==================== STYLE (bez zmian) ==================== */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-size: 14px;
+    }
+
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      background: white;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      position: relative;
+      height: 60px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-r {
+      color: #007acc;
+      background: #e6f2ff;
+      padding: 5px 8px;
+      border-radius: 6px;
+      min-width: 35px;
+      text-align: center;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-s {
+      color: #28a745;
+      background: #e8f5e9;
+      padding: 5px 8px;
+      border-radius: 6px;
+      min-width: 35px;
+      text-align: center;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-subtitle {
+      font-size: 10px;
+      color: #666;
+      position: absolute;
+      bottom: 4px;
+      right: 10px;
+    }
+
+    /* Ekran logowania */
+    .login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 2000;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 300px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    }
+
+    .login-logo {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 20px;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .login-title {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .login-input:focus {
+      border-color: #007acc;
+      outline: none;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 10px;
+      margin: 15px 0 8px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .login-error {
+      color: #dc3545;
+      text-align: center;
+      margin: 8px 0;
+      min-height: 18px;
+      font-size: 12px;
+    }
+
+    .user-info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .logout-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #007acc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .mode-selector {
+      display: flex;
+      margin: 8px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #e0e0e0;
+      height: 36px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .mode-btn.rework {
+      background-color: #e6f2ff;
+      color: #007acc;
+    }
+
+    .mode-btn.scan {
+      background-color: #e8f5e9;
+      color: #28a745;
+    }
+
+    .mode-btn.active.rework {
+      background-color: #007acc;
+      color: white;
+    }
+
+    .mode-btn.active.scan {
+      background-color: #28a745;
+      color: white;
+    }
+
+    main {
+      margin: 0 8px 10px;
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .input-row-compact {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .input-row-compact input {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      height: 36px;
+      min-width: 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      margin: 4px 0;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      -webkit-appearance: none;
+      height: 36px;
+    }
+
+    input:focus {
+      border-color: #007acc;
+      outline: none;
+    }
+
+    .required-field {
+      border-color: #dc3545 !important;
+    }
+
+    .disabled-input {
+      background-color: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
+    }
+
+    #buttons {
+      display: none;
+      flex-direction: row;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .btn-small {
+      flex: 1;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      height: 38px;
+    }
+
+    .btn-ok {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-ng {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .message {
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      text-align: center;
+      margin: 8px 0;
+      font-weight: 600;
+      display: none;
+      font-size: 12px;
+    }
+
+    .message.error {
+      background-color: #dc3545;
+      display: block;
+    }
+
+    .message.warning {
+      background-color: #ffc107;
+      color: #212529;
+      display: block;
+    }
+
+    .message.success {
+      background-color: #28a745;
+      display: block;
+    }
+
+    .message.info {
+      background-color: #17a2b8;
+      display: block;
+    }
+
+    #stats {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 12px;
+      margin: 10px 0;
+      font-size: 11px;
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 6px;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    #stats::-webkit-scrollbar {
+      display: none;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .stat-value {
+      font-weight: bold;
+      font-size: 12px;
+      margin-left: 2px;
+    }
+
+    .stat-ok { color: #28a745; }
+    .stat-ng { color: #dc3545; }
+    .stat-total { color: #007acc; }
+    .stat-pending { color: #ffc107; }
+
+    #codes-table {
+      margin-top: 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: calc(100vh - 450px);
+      min-height: 200px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 500px;
+    }
+
+    th, td {
+      padding: 6px 4px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      line-height: 1.2;
+    }
+
+    th {
+      background-color: #007acc;
+      color: white;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+      white-space: nowrap;
+      font-size: 11px;
+      padding: 8px 4px;
+    }
+
+    .scan-mode th {
+      background-color: #28a745;
+    }
+
+    .status-mode th {
+      background-color: #6c757d !important;
+    }
+
+    .sort-icon {
+      margin-left: 2px;
+      font-size: 10px;
+    }
+
+    .status-ok {
+      color: #28a745;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .status-ng {
+      color: #dc3545;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .status-pending {
+      color: #6c757d;
+      font-style: italic;
+      font-size: 11px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 13px;
+      border-radius: 6px;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      height: 36px;
+    }
+
+    .scan-mode .action-btn {
+      background-color: #28a745;
+    }
+
+    .action-btn:disabled {
+      background-color: #cccccc !important;
+      cursor: not-allowed;
+    }
+
+    .file-input-container {
+      margin: 10px 0;
+    }
+
+    .file-input-label {
+      display: block;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border: 1px dashed #dee2e6;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #file-name {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+    }
+
+    .confirmation-dialog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 15px;
+    }
+
+    .confirmation-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .confirmation-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .confirmation-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+    }
+
+    .confirm-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    .cancel-btn {
+      background: #6c757d;
+      color: white;
+    }
+
+    @keyframes highlight {
+      0% { background-color: rgba(40, 167, 69, 0.2); }
+      100% { background-color: transparent; }
+    }
+    
+    .new-entry {
+      animation: highlight 2s ease-out;
+    }
+
+    .remove-btn {
+      text-align: center;
+      color: #dc3545;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px;
+      min-width: 24px;
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 13px; }
+      .logo { font-size: 20px; }
+      .logo-r, .logo-s { padding: 4px 6px; min-width: 30px; height: 30px; }
+      main { padding: 10px; margin: 0 6px 8px; }
+      .mode-selector { height: 34px; margin: 6px; }
+      .mode-btn { padding: 6px 3px; font-size: 12px; }
+      .input-row-compact input { height: 34px; padding: 6px 8px; font-size: 12px; }
+      input { height: 34px; padding: 6px 8px; font-size: 12px; }
+      .btn-small, .action-btn { height: 34px; padding: 8px; font-size: 12px; }
+      #stats { gap: 10px; padding: 6px; }
+      .stat-item { font-size: 10px; }
+      .stat-value { font-size: 11px; }
+      #codes-table { max-height: calc(100vh - 420px); }
+      table { font-size: 11px; min-width: 450px; }
+      th, td { padding: 4px 3px; }
+      th { font-size: 10px; padding: 6px 3px; }
+    }
+
+    @media (max-width: 360px) {
+      .input-row-compact { flex-direction: column; gap: 6px; }
+      #stats { gap: 8px; }
+      table { min-width: 400px; }
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <!-- Ekran logowania (Firebase Auth) -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-container">
+      <div class="login-logo">
+        <div class="logo-r">R</div>
+        <div class="logo-s">S</div>
+      </div>
+      <div class="login-title">R/S - Rework Scan</div>
+      
+      <input type="email" id="loginEmail" class="login-input" placeholder="Email" autocomplete="email">
+      <input type="password" id="loginPassword" class="login-input" placeholder="Hasło" autocomplete="current-password">
+      
+      <div class="login-error" id="loginError"></div>
+      <button class="login-btn" onclick="login()">Zaloguj się</button>
+    </div>
+  </div>
+
+  <!-- Główna aplikacja (widoczna po zalogowaniu) -->
+  <div id="appContent" style="display: none;">
+    <div class="logo-container">
+      <div class="logo">
+        <div class="logo-r">R</div>
+        <div class="logo-s">S</div>
+      </div>
+      <div class="logo-subtitle">Rework Scan</div>
+      <div class="user-info">
+        <span id="currentUser"></span>
+        <button class="logout-btn" onclick="logout()">Wyloguj</button>
+      </div>
+    </div>
+
+    <div class="confirmation-dialog" id="confirmationDialog">
+      <div class="confirmation-content">
+        <h3 id="confirmationTitle" style="font-size: 15px; margin: 0 0 10px 0;">Czy na pewno chcesz usunąć ten kod?</h3>
+        <p id="confirmationMessage" style="margin: 0; color: #666;">Kod zostanie trwale usunięty z listy.</p>
+        <div class="confirmation-buttons">
+          <button class="confirmation-btn cancel-btn" onclick="cancelRemoval()">Anuluj</button>
+          <button class="confirmation-btn confirm-btn" onclick="confirmRemoval()">Potwierdź</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Przełącznik trybów (tylko dla inspektora) -->
+    <div class="mode-selector" id="modeSelector" style="display: none;">
+      <button id="reworkModeBtn" class="mode-btn rework active" onclick="switchMode('rework')">Rework</button>
+      <button id="scanModeBtn" class="mode-btn scan" onclick="switchMode('scan')">Scan</button>
+    </div>
+
+    <main id="mainContent">
+      <!-- Panel inspektora -->
+      <div id="inspectorControls" style="display: none;">
+        <div class="input-row-compact">
+          <input id="rework-name" placeholder="Nazwa reworku*" onkeydown="handleReworkNameKeyDown(event)" oninput="validateForm()" />
+          <input id="inspector" placeholder="Inspektor*" onkeydown="handleInspectorKeyDown(event)" oninput="validateForm()" />
+        </div>
+
+        <div id="fileInputContainer" class="file-input-container">
+          <label for="code-list" class="file-input-label">Zaimportuj listę kodów (XLSX/CSV)</label>
+          <input type="file" id="code-list" accept=".xlsx,.csv" style="display: none;" onchange="handleFileImport(event)" />
+          <div id="file-name">Nie wybrano pliku</div>
+        </div>
+
+        <input id="barcode" placeholder="Wpisz kod kreskowy" disabled class="disabled-input" />
+        
+        <div id="buttons">
+          <button class="btn-small btn-ok" onclick="selectStatus('OK')">OK</button>
+          <button class="btn-small btn-ng" onclick="selectStatus('NG')">NG</button>
+        </div>
+
+        <input id="note" placeholder="Adnotacja (NG)" disabled style="display: none;" />
+      </div>
+
+      <!-- Panel statusu (podgląd) -->
+      <div id="statusInfo" style="display: none;">
+        <div style="background: #e8f5e9; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <div><strong>Rework:</strong> <span id="currentReworkName">-</span></div>
+            <div><strong>Inspektor:</strong> <span id="currentInspectorName">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message" id="message"></div>
+
+      <!-- Statystyki w jednej linii -->
+      <div id="stats">
+        <div class="stat-item">
+          <span>Zeskanowano:</span>
+          <span id="scannedCount" class="stat-value stat-total">0</span>
+        </div>
+        <div class="stat-item" id="toScanContainer">
+          <span>Do skanu:</span>
+          <span id="toScanCount" class="stat-value stat-pending">0</span>
+        </div>
+        <div class="stat-item" id="okContainer">
+          <span>OK:</span>
+          <span id="okCount" class="stat-value stat-ok">0</span>
+        </div>
+        <div class="stat-item" id="ngContainer">
+          <span>NG:</span>
+          <span id="ngCount" class="stat-value stat-ng">0</span>
+        </div>
+        <div class="stat-item" id="ngPercentContainer">
+          <span>% NG:</span>
+          <span id="ngPercent" class="stat-value">0</span>
+        </div>
+      </div>
+
+      <!-- Przyciski akcji (tylko inspektor) -->
+      <div class="action-buttons" id="actionButtons" style="display: none;">
+        <button class="action-btn" onclick="exportToExcel()" id="exportBtn">Export</button>
+        <button class="action-btn" onclick="resetAll()" id="resetBtn">Reset</button>
+      </div>
+
+      <!-- Tabela z kodami -->
+      <div id="codes-table">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('code')">Kod <span id="sort-code-icon" class="sort-icon">↓</span></th>
+              <th id="statusHeader" onclick="sortTable('status')">Status <span id="sort-status-icon" class="sort-icon"></span></th>
+              <th id="noteHeader" onclick="sortTable('note')">Uwagi <span id="sort-note-icon" class="sort-icon"></span></th>
+              <th id="inspectorHeader" onclick="sortTable('inspector')">Insp. <span id="sort-inspector-icon" class="sort-icon"></span></th>
+              <th id="dateHeader" onclick="sortTable('date')">Data <span id="sort-date-icon" class="sort-icon"></span></th>
+              <th style="width: 30px;" id="actionHeader">Akcja</th>
+            </tr>
+          </thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ==================== KONFIGURACJA FIREBASE ====================
+    // Zamień poniższe dane na własne z konsoli Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAo0P_MnZQjHPejym7JnZkGbRESIe1Okc0",
+      authDomain: "reworkscanv2.firebaseapp.com",
+      databaseURL: "https://reworkscanv2-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "reworkscanv2",
+      storageBucket: "reworkscanv2.firebasestorage.app",
+      messagingSenderId: "440073624424",
+      appId: "1:440073624424:web:c3da7512d9b469940e94dd"
+    };
+
+    // Inicjalizacja Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // ==================== ZMIENNE GLOBALNE ====================
+    let XLSX;                           // biblioteka do Excel (ładowana dynamicznie)
+    let xlsxLoaded = false;              // czy biblioteka jest załadowana
+    let xlsxLoading = false;              // czy trwa ładowanie (blokada wielokrotnego ładowania)
+
+    // Elementy DOM
+    const loginScreen = document.getElementById("loginScreen");
+    const appContent = document.getElementById("appContent");
+    const currentUserSpan = document.getElementById("currentUser");
+    const loginError = document.getElementById("loginError");
+    const barcodeInput = document.getElementById("barcode");
+    const noteInput = document.getElementById("note");
+    const inspectorInput = document.getElementById("inspector");
+    const reworkNameInput = document.getElementById("rework-name");
+    const message = document.getElementById("message");
+    const list = document.getElementById("list");
+    const buttons = document.getElementById("buttons");
+    const fileNameDisplay = document.getElementById("file-name");
+    const confirmationDialog = document.getElementById("confirmationDialog");
+    const confirmationTitle = document.getElementById("confirmationTitle");
+    const confirmationMessage = document.getElementById("confirmationMessage");
+    const fileInputContainer = document.getElementById("fileInputContainer");
+    const reworkModeBtn = document.getElementById("reworkModeBtn");
+    const scanModeBtn = document.getElementById("scanModeBtn");
+    const mainContent = document.getElementById("mainContent");
+    const exportBtn = document.getElementById("exportBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const actionHeader = document.getElementById("actionHeader");
+    const modeSelector = document.getElementById("modeSelector");
+    const inspectorControls = document.getElementById("inspectorControls");
+    const statusInfo = document.getElementById("statusInfo");
+    const actionButtons = document.getElementById("actionButtons");
+    const currentReworkName = document.getElementById("currentReworkName");
+    const currentInspectorName = document.getElementById("currentInspectorName");
+    const inspectorHeader = document.getElementById("inspectorHeader");
+    const dateHeader = document.getElementById("dateHeader");
+    const statusHeader = document.getElementById("statusHeader");
+    const noteHeader = document.getElementById("noteHeader");
+
+    // Dane aplikacji
+    let reworkData = [];
+    let scanData = [];
+    let currentSort = { field: 'code', direction: 'asc' };
+    let codeToRemove = null;
+    let currentMode = 'rework';
+    let tempCode = '';
+    let isProcessing = false;
+    let currentUser = null;         // obiekt użytkownika z Auth
+    let userRole = null;            // 'inspector' lub 'status'
+    let dataLoaded = false;
+    let currentReworkId = null;
+
+    // ==================== ŁADOWANIE XLSX (POPRAWIONE) ====================
+    async function loadXLSXLibrary() {
+      // Jeśli już załadowana, zwróć
+      if (xlsxLoaded && typeof XLSX !== 'undefined') {
+        return Promise.resolve(XLSX);
+      }
+      // Jeśli już ładuje, czekaj na zakończenie
+      if (xlsxLoading) {
+        return new Promise((resolve) => {
+          const check = setInterval(() => {
+            if (xlsxLoaded && typeof XLSX !== 'undefined') {
+              clearInterval(check);
+              resolve(XLSX);
+            }
+          }, 100);
+        });
+      }
+      xlsxLoading = true;
+      
+      const sources = [
+        'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
+        'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+        'https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js'
+      ];
+      
+      return new Promise((resolve, reject) => {
+        function tryLoad(index) {
+          if (index >= sources.length) {
+            xlsxLoading = false;
+            reject(new Error('Nie można załadować biblioteki XLSX'));
+            return;
+          }
+          
+          const script = document.createElement('script');
+          script.src = sources[index];
+          script.onload = () => {
+            XLSX = window.XLSX;
+            xlsxLoaded = true;
+            xlsxLoading = false;
+            resolve(XLSX);
+          };
+          script.onerror = () => tryLoad(index + 1);
+          document.head.appendChild(script);
+        }
+        tryLoad(0);
+      });
+    }
+
+    // ==================== FUNKCJE LOGOWANIA (FIREBASE AUTH) ====================
+    async function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      loginError.textContent = '';
+      
+      if (!email || !password) {
+        loginError.textContent = 'Wprowadź email i hasło';
+        return;
+      }
+      
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        // Po udanym logowaniu, onAuthStateChanged przejmie kontrolę
+      } catch (error) {
+        console.error('Błąd logowania:', error);
+        loginError.textContent = 'Nieprawidłowy email lub hasło';
+      }
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    // Obsługa stanu uwierzytelnienia
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Pobierz rolę użytkownika z bazy danych (ścieżka /users/{uid})
+        try {
+          const snapshot = await database.ref('users/' + user.uid).once('value');
+          const userData = snapshot.val();
+          
+          if (userData && userData.role) {
+            currentUser = user;
+            userRole = userData.role;
+            currentUserSpan.textContent = user.email; // lub userData.name jeśli chcesz
+            
+            loginScreen.style.display = 'none';
+            appContent.style.display = 'block';
+            
+            setupPermissions();
+            loadData(); // ładuje dane z Firebase (reworkData, scanData)
+            
+            if (userRole === 'inspector') {
+              validateForm();
+              switchMode('rework');
+            } else { // status
+              showStatusInfo();
+              renderTable();
+              updateStats();
+            }
+          } else {
+            // Brak roli – wyloguj i pokaż błąd
+            console.error('Brak roli dla użytkownika');
+            await auth.signOut();
+            loginScreen.style.display = 'flex';
+            appContent.style.display = 'none';
+            loginError.textContent = 'Konto nie ma przypisanej roli. Skontaktuj się z administratorem.';
+          }
+        } catch (error) {
+          console.error('Błąd pobierania roli:', error);
+          await auth.signOut();
+          loginScreen.style.display = 'flex';
+          appContent.style.display = 'none';
+          loginError.textContent = 'Błąd autoryzacji. Spróbuj ponownie.';
+        }
+      } else {
+        // Użytkownik niezalogowany
+        loginScreen.style.display = 'flex';
+        appContent.style.display = 'none';
+        currentUser = null;
+        userRole = null;
+      }
+    });
+
+    // ==================== FUNKCJE UPRAWNIEŃ ====================
+    function setupPermissions() {
+      const isInspector = userRole === 'inspector';
+      const isStatus = userRole === 'status';
+      
+      modeSelector.style.display = isInspector ? 'flex' : 'none';
+      inspectorControls.style.display = isInspector ? 'block' : 'none';
+      statusInfo.style.display = isStatus ? 'block' : 'none';
+      actionButtons.style.display = isInspector ? 'flex' : 'none';
+      
+      if (isStatus) {
+        actionHeader.style.display = 'none';
+        document.querySelector('table thead').classList.add('status-mode');
+        statusHeader.style.display = '';
+        noteHeader.style.display = '';
+        inspectorHeader.style.display = '';
+        dateHeader.style.display = '';
+        
+        barcodeInput.disabled = true;
+        barcodeInput.classList.add('disabled-input');
+        barcodeInput.placeholder = 'Tryb podglądu - brak edycji';
+      } else {
+        actionHeader.style.display = '';
+        statusHeader.style.display = '';
+        noteHeader.style.display = '';
+        inspectorHeader.style.display = '';
+        dateHeader.style.display = '';
+        document.querySelector('table thead').classList.remove('status-mode');
+        
+        barcodeInput.disabled = true; // zostanie odblokowane po walidacji formularza
+        validateForm();
+      }
+    }
+
+    function showStatusInfo() {
+      // Odczyt z localStorage (ustawiane przez inspektora)
+      currentReworkName.textContent = localStorage.getItem('reworkName') || '-';
+      currentInspectorName.textContent = localStorage.getItem('inspector') || '-';
+    }
+
+    // ==================== FUNKCJE FIREBASE (DANE) ====================
+    async function saveToFirebase(dataType, data) {
+      try {
+        const path = dataType === 'rework' ? 'reworkData' : 'scanData';
+        await database.ref(path).set(data);
+        return true;
+      } catch (error) {
+        console.error('Błąd zapisu do Firebase:', error);
+        showMessage('Błąd zapisu do bazy danych', 'error', 3000);
+        return false;
+      }
+    }
+
+    async function loadFromFirebase(dataType) {
+      try {
+        const path = dataType === 'rework' ? 'reworkData' : 'scanData';
+        const snapshot = await database.ref(path).once('value');
+        const data = snapshot.val() || [];
+        // Jeśli dane są obiektem, konwertuj do tablicy
+        if (typeof data === 'object' && !Array.isArray(data)) {
+          return Object.values(data);
+        }
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Błąd odczytu z Firebase:', error);
+        showMessage('Błąd ładowania danych', 'error', 3000);
+        return [];
+      }
+    }
+
+    async function saveEntryToFirebase(dataType, entry) {
+      try {
+        const path = dataType === 'rework' ? 'reworkData' : 'scanData';
+        const currentData = dataType === 'rework' ? reworkData : scanData;
+        
+        const index = currentData.findIndex(item => 
+          dataType === 'rework' 
+            ? item.code.substring(0, 14) === entry.code.substring(0, 14)
+            : item.code === entry.code
+        );
+        
+        if (index !== -1) {
+          currentData[index] = entry;
+          await saveToFirebase(dataType, currentData);
+        }
+        return true;
+      } catch (error) {
+        console.error('Błąd zapisu wpisu:', error);
+        return false;
+      }
+    }
+
+    async function removeFromFirebase(dataType, code) {
+      try {
+        const currentData = dataType === 'rework' ? reworkData : scanData;
+        
+        if (dataType === 'rework') {
+          const index = currentData.findIndex(item => 
+            item.code.substring(0, 14) === code.substring(0, 14)
+          );
+          if (index !== -1) {
+            currentData[index] = {
+              ...currentData[index],
+              status: "",
+              inspector: "",
+              note: "",
+              timestamp: null,
+              isNew: false
+            };
+          }
+        } else {
+          const index = currentData.findIndex(item => item.code === code);
+          if (index !== -1) {
+            currentData.splice(index, 1);
+          }
+        }
+        
+        await saveToFirebase(dataType, currentData);
+        return true;
+      } catch (error) {
+        console.error('Błąd usuwania:', error);
+        return false;
+      }
+    }
+
+    async function importToFirebase(dataType, newCodes) {
+      try {
+        const currentData = dataType === 'rework' ? reworkData : scanData;
+        const updatedData = [...currentData, ...newCodes];
+        await saveToFirebase(dataType, updatedData);
+        return true;
+      } catch (error) {
+        console.error('Błąd importu:', error);
+        return false;
+      }
+    }
+
+    // ==================== FUNKCJE APLIKACJI ====================
+    async function loadData() {
+      // Odczyt z localStorage (ustawienia, nie dane wrażliwe)
+      reworkNameInput.value = localStorage.getItem('reworkName') || '';
+      inspectorInput.value = localStorage.getItem('inspector') || '';
+      
+      // Załaduj dane z Firebase
+      reworkData = await loadFromFirebase('rework');
+      scanData = await loadFromFirebase('scan');
+      
+      dataLoaded = true;
+      updateSortIcons();
+      
+      if (userRole === 'inspector') {
+        validateForm();
+        
+        inspectorInput.addEventListener("input", function() {
+          localStorage.setItem('inspector', inspectorInput.value.trim());
+          validateForm();
+        });
+        
+        barcodeInput.addEventListener("keydown", handleBarcodeInput);
+        
+        reworkNameInput.addEventListener("input", function() {
+          localStorage.setItem(currentMode === 'rework' ? 'reworkName' : 'scanName', reworkNameInput.value.trim());
+          validateForm();
+        });
+      }
+      
+      renderTable();
+      updateStats();
+    }
+
+    function switchMode(mode) {
+      if (userRole === 'status') return;
+      
+      currentMode = mode;
+      reworkModeBtn.classList.toggle('active', mode === 'rework');
+      scanModeBtn.classList.toggle('active', mode === 'scan');
+      
+      if (userRole === 'inspector') {
+        fileInputContainer.style.display = mode === 'rework' ? 'block' : 'none';
+      }
+      
+      buttons.style.display = 'none';
+      noteInput.style.display = 'none';
+      
+      if (mode === 'rework') {
+        mainContent.classList.remove('scan-mode');
+      } else {
+        mainContent.classList.add('scan-mode');
+      }
+      
+      renderTable();
+      updateStats();
+      validateForm();
+    }
+
+    function validateForm() {
+      if (userRole === 'status') {
+        return false;
+      }
+      
+      const isNameValid = reworkNameInput.value.trim().length > 0;
+      const isInspectorValid = inspectorInput.value.trim().length >= 3;
+
+      reworkNameInput.classList.toggle('required-field', !isNameValid);
+      inspectorInput.classList.toggle('required-field', !isInspectorValid);
+
+      if (isNameValid && isInspectorValid) {
+        barcodeInput.disabled = false;
+        barcodeInput.classList.remove('disabled-input');
+        barcodeInput.placeholder = "Wpisz kod kreskowy";
+        return true;
+      } else {
+        barcodeInput.disabled = true;
+        barcodeInput.classList.add('disabled-input');
+        return false;
+      }
+    }
+
+    function handleReworkNameKeyDown(e) {
+      if (userRole === 'status') return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const name = reworkNameInput.value.trim();
+        if (name.length > 0) {
+          localStorage.setItem(currentMode === 'rework' ? 'reworkName' : 'scanName', name);
+          inspectorInput.focus();
+          validateForm();
+        }
+      }
+    }
+
+    function handleInspectorKeyDown(e) {
+      if (userRole === 'status') return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const value = inspectorInput.value.trim();
+        if (value.length >= 3) {
+          localStorage.setItem('inspector', value);
+          if (validateForm()) barcodeInput.focus();
+        }
+      }
+    }
+
+    async function handleFileImport(event) {
+      if (userRole === 'status') {
+        showMessage("Tryb podglądu - import zablokowany", "error", 3000);
+        event.target.value = '';
+        return;
+      }
+      
+      if (!validateForm()) {
+        showMessage("Wprowadź nazwę i inspektora przed importem", "error", 3000);
+        event.target.value = '';
+        return;
+      }
+
+      const file = event.target.files[0];
+      if (!file) {
+        showMessage("Nie wybrano pliku", "error", 3000);
+        return;
+      }
+
+      fileNameDisplay.textContent = file.name;
+
+      // Sprawdź czy XLSX jest załadowane, jeśli nie – załaduj
+      if (!xlsxLoaded || typeof XLSX === 'undefined') {
+        try {
+          showMessage("Ładowanie biblioteki XLSX...", "info", 0);
+          await loadXLSXLibrary();
+        } catch (error) {
+          showMessage("Błąd ładowania biblioteki XLSX", "error", 3000);
+          console.error(error);
+          event.target.value = '';
+          return;
+        }
+      }
+
+      const reader = new FileReader();
+      
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          if (workbook.SheetNames.length === 0) {
+            throw new Error("Brak arkuszy w pliku");
+          }
+
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          if (!worksheet || !worksheet['!ref']) {
+            throw new Error("Arkusz jest pusty");
+          }
+
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          await processImportedData(jsonData);
+        } catch (error) {
+          console.error(error);
+          showMessage(`Błąd: ${error.message}`, "error", 5000);
+        }
+      };
+      
+      reader.onerror = function() {
+        showMessage("Błąd odczytu pliku. Spróbuj ponownie.", "error", 3000);
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function processImportedData(rawData) {
+      const newCodes = [];
+      let codesFound = 0;
+      let skippedRows = 0;
+
+      for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+        if (!row || row.length === 0) continue;
+
+        const code = String(row[0] || '').trim().toUpperCase();
+        
+        if (code.length >= 14) {
+          const currentData = currentMode === 'rework' ? reworkData : scanData;
+          const exists = currentData.some(item => 
+            currentMode === 'rework' 
+              ? item.code.substring(0, 14) === code.substring(0, 14) 
+              : item.code === code
+          );
+          
+          if (!exists) {
+            newCodes.push({
+              code: code,
+              status: "",
+              inspector: "",
+              note: "",
+              timestamp: null,
+              isNew: false
+            });
+            codesFound++;
+          }
+        } else {
+          skippedRows++;
+        }
+      }
+
+      if (codesFound === 0) {
+        throw new Error("Nie znaleziono poprawnych kodów w pliku (wymagane min. 14 znaków)");
+      }
+
+      const success = await importToFirebase(currentMode, newCodes);
+      
+      if (success) {
+        if (currentMode === 'rework') {
+          reworkData = [...reworkData, ...newCodes];
+        } else {
+          scanData = [...scanData, ...newCodes];
+        }
+        
+        showMessage(`Zaimportowano ${codesFound} kodów (pominięto ${skippedRows} wierszy)`, "success", 3000);
+        renderTable();
+        updateStats();
+      }
+    }
+
+    function handleBarcodeInput(e) {
+      if (userRole === 'status') {
+        e.preventDefault();
+        showMessage("Tryb podglądu - skanowanie zablokowane", "error", 3000);
+        return;
+      }
+      
+      if (isProcessing) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!validateForm()) {
+        e.preventDefault();
+        showMessage("Wprowadź nazwę i inspektora przed skanowaniem", "error", 3000);
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const scannedCode = barcodeInput.value.trim();
+        
+        if (scannedCode.length < 14) {
+          showMessage("Kod musi mieć co najmniej 14 znaków", "error", 3000);
+          setTimeout(() => { barcodeInput.value = ""; }, 4000);
+          return;
+        }
+
+        isProcessing = true;
+
+        if (currentMode === 'rework') {
+          const scannedCodePrefix = scannedCode.substring(0, 14);
+          const currentData = reworkData;
+          const matchedItem = currentData.find(item => item.code.substring(0, 14) === scannedCodePrefix);
+          
+          if (!matchedItem) {
+            showMessage("KOD NIE ZNAJDUJE SIĘ NA LIŚCIE!", "error", 3000);
+            setTimeout(() => { 
+              barcodeInput.value = "";
+              isProcessing = false;
+            }, 4000);
+            return;
+          }
+
+          if (matchedItem.status !== "" && matchedItem.status !== "Nie zeskanowano") {
+            showMessage("TEN KOD ZOSTAŁ JUŻ ZESKANOWANY!", "warning", 3000);
+            setTimeout(() => { 
+              barcodeInput.value = "";
+              isProcessing = false;
+            }, 4000);
+            return;
+          }
+
+          tempCode = matchedItem.code;
+          barcodeInput.value = matchedItem.code;
+          buttons.style.display = "flex";
+          showMessage("Wybierz status: OK lub NG", "info", 0);
+          
+          setTimeout(() => { 
+            barcodeInput.value = "";
+            isProcessing = false;
+          }, 4000);
+        } else {
+          const currentData = scanData;
+          const exists = currentData.some(item => item.code === scannedCode);
+          if (exists) {
+            showMessage("TEN KOD ZOSTAŁ JUŻ ZESKANOWANY!", "warning", 3000);
+            barcodeInput.value = "";
+            isProcessing = false;
+            return;
+          }
+          
+          saveEntryScanMode(scannedCode);
+          isProcessing = false;
+          return;
+        }
+      }
+    }
+
+    function selectStatus(status) {
+      if (userRole === 'status') return;
+      
+      buttons.style.display = "none";
+      
+      if (status === "NG") {
+        noteInput.style.display = "block";
+        noteInput.disabled = false;
+        noteInput.focus();
+        showMessage("Wpisz adnotację i naciśnij Enter", "info", 0);
+        noteInput.addEventListener("keydown", function handleNoteInput(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            saveEntry(status, noteInput.value.trim());
+            noteInput.removeEventListener("keydown", handleNoteInput);
+          }
+        });
+      } else {
+        saveEntry(status, "");
+      }
+    }
+
+    async function saveEntryScanMode(code) {
+      const newEntry = {
+        code: code,
+        status: "OK",
+        inspector: inspectorInput.value.trim(),
+        note: "",
+        timestamp: Date.now(),
+        isNew: true
+      };
+      
+      const success = await saveEntryToFirebase('scan', newEntry);
+      
+      if (success) {
+        scanData.push(newEntry);
+        
+        showMessage("Kod został pomyślnie zeskanowany!", "success", 2000);
+        renderTable();
+        updateStats();
+        barcodeInput.value = "";
+        barcodeInput.focus();
+      }
+    }
+
+    async function saveEntry(status, note) {
+      const currentData = currentMode === 'rework' ? reworkData : scanData;
+      const dataType = currentMode === 'rework' ? 'rework' : 'scan';
+      const codeIndex = currentData.findIndex(item => 
+        currentMode === 'rework' 
+          ? item.code.substring(0, 14) === tempCode.substring(0, 14) 
+          : item.code === tempCode
+      );
+      
+      if (codeIndex !== -1) {
+        const updatedEntry = {
+          ...currentData[codeIndex],
+          status: status,
+          inspector: inspectorInput.value.trim(),
+          note: note,
+          timestamp: Date.now(),
+          isNew: true
+        };
+        
+        const success = await saveEntryToFirebase(dataType, updatedEntry);
+        
+        if (success) {
+          currentData[codeIndex] = updatedEntry;
+          
+          noteInput.value = "";
+          noteInput.style.display = "none";
+          noteInput.disabled = true;
+          
+          showMessage(`Kod oznaczony jako ${status}`, "success", 2000);
+          renderTable();
+          updateStats();
+          barcodeInput.focus();
+        }
+      }
+    }
+
+    function showRemoveConfirmation(code) {
+      if (userRole === 'status') {
+        showMessage("Tryb podglądu - edycja zablokowana", "error", 3000);
+        return;
+      }
+      
+      codeToRemove = code;
+      
+      if (currentMode === 'rework') {
+        confirmationTitle.textContent = "Czy na pewno chcesz zresetować status?";
+        confirmationMessage.textContent = "Status kodu zostanie zresetowany.";
+      } else {
+        confirmationTitle.textContent = "Czy na pewno chcesz usunąć ten kod?";
+        confirmationMessage.textContent = "Kod zostanie trwale usunięty z listy.";
+      }
+      
+      confirmationDialog.style.display = 'flex';
+    }
+
+    function cancelRemoval() {
+      confirmationDialog.style.display = 'none';
+      codeToRemove = null;
+    }
+
+    async function confirmRemoval() {
+      if (!codeToRemove) return;
+      
+      const dataType = currentMode === 'rework' ? 'rework' : 'scan';
+      const success = await removeFromFirebase(dataType, codeToRemove);
+      
+      if (success) {
+        if (currentMode === 'rework') {
+          const codeIndex = reworkData.findIndex(item => item.code.substring(0, 14) === codeToRemove.substring(0, 14));
+          if (codeIndex !== -1) {
+            reworkData[codeIndex] = {
+              ...reworkData[codeIndex],
+              status: "",
+              inspector: "",
+              note: "",
+              timestamp: null,
+              isNew: false
+            };
+            showMessage(`Zresetowano status kodu: ${reworkData[codeIndex].code.substring(0, 14)}...`, "success", 2000);
+          }
+        } else {
+          const codeIndex = scanData.findIndex(item => item.code === codeToRemove);
+          if (codeIndex !== -1) {
+            scanData.splice(codeIndex, 1);
+            showMessage(`Usunięto kod: ${codeToRemove}`, "success", 2000);
+          }
+        }
+        
+        confirmationDialog.style.display = 'none';
+        renderTable();
+        updateStats();
+        codeToRemove = null;
+      }
+    }
+
+    function renderTable() {
+      const currentData = currentMode === 'rework' ? reworkData : scanData;
+      const sortedData = [...currentData].sort((a, b) => {
+        if (currentMode === 'rework') {
+          if (a.status === "" && b.status !== "") return 1;
+          if (a.status !== "" && b.status === "") return -1;
+        }
+        
+        const aValue = a[currentSort.field] || "";
+        const bValue = b[currentSort.field] || "";
+        
+        if (currentSort.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      const displayData = currentMode === 'scan' 
+        ? sortedData.filter(item => item.status !== "" && item.status !== "Nie zeskanowano")
+        : sortedData;
+
+      list.innerHTML = displayData.map(entry => {
+        const statusText = entry.status === "" ? "" : entry.status;
+        const statusClass = getStatusClass(entry.status);
+        
+        if (userRole === 'status') {
+          return `
+            <tr class="${entry.isNew ? 'new-entry' : ''}">
+              <td style="font-size: 11px;">${entry.code}</td>
+              <td class="${statusClass}" style="font-size: 11px;">${statusText}</td>
+              <td style="font-size: 11px;">${entry.note}</td>
+              <td style="font-size: 11px;">${entry.inspector || ''}</td>
+              <td style="font-size: 11px;">${entry.timestamp ? new Date(entry.timestamp).toLocaleString('pl-PL', { 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) : ""}</td>
+            </tr>
+          `;
+        } else {
+          return `
+            <tr class="${entry.isNew ? 'new-entry' : ''}">
+              <td style="font-size: 11px;">${entry.code}</td>
+              <td class="${statusClass}" style="font-size: 11px;">${statusText}</td>
+              <td style="font-size: 11px;">${entry.note}</td>
+              <td style="font-size: 11px;">${entry.inspector}</td>
+              <td style="font-size: 11px;">${entry.timestamp ? new Date(entry.timestamp).toLocaleString('pl-PL', { 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) : ""}</td>
+              <td class="remove-btn" onclick="showRemoveConfirmation('${entry.code}')">${currentMode === 'rework' ? '↻' : '✕'}</td>
+            </tr>
+          `;
+        }
+      }).join('');
+
+      if (currentMode === 'rework') {
+        reworkData.forEach(entry => entry.isNew = false);
+      } else {
+        scanData.forEach(entry => entry.isNew = false);
+      }
+    }
+
+    function getStatusClass(status) {
+      if (status === "") return "";
+      switch(status) {
+        case "OK": return "status-ok";
+        case "NG": return "status-ng";
+        default: return "status-pending";
+      }
+    }
+
+    function sortTable(field) {
+      if (currentSort.field === field) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.field = field;
+        currentSort.direction = 'asc';
+      }
+      updateSortIcons();
+      renderTable();
+    }
+
+    function updateSortIcons() {
+      document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.textContent = '';
+      });
+      
+      const iconId = `sort-${currentSort.field}-icon`;
+      const icon = document.getElementById(iconId);
+      if (icon) {
+        icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+      }
+    }
+
+    function updateStats() {
+      let total, scanned, toScan, ok, ng;
+      const currentData = currentMode === 'rework' ? reworkData : scanData;
+      
+      if (currentMode === 'rework') {
+        total = currentData.length;
+        scanned = currentData.filter(entry => entry.status === "OK" || entry.status === "NG").length;
+        toScan = total - scanned;
+        ok = currentData.filter(entry => entry.status === "OK").length;
+        ng = currentData.filter(entry => entry.status === "NG").length;
+        const percent = scanned > 0 ? Math.round((ng / scanned) * 100) : 0;
+
+        document.getElementById("scannedCount").textContent = scanned;
+        document.getElementById("toScanCount").textContent = toScan;
+        document.getElementById("okCount").textContent = ok;
+        document.getElementById("ngCount").textContent = ng;
+        document.getElementById("ngPercent").textContent = percent;
+        
+        document.getElementById("toScanContainer").style.display = "flex";
+        document.getElementById("okContainer").style.display = "flex";
+        document.getElementById("ngContainer").style.display = "flex";
+        document.getElementById("ngPercentContainer").style.display = "flex";
+      } else {
+        scanned = currentData.filter(entry => entry.status === "OK" || entry.status === "NG").length;
+        document.getElementById("scannedCount").textContent = scanned;
+        
+        document.getElementById("toScanContainer").style.display = "none";
+        document.getElementById("okContainer").style.display = "none";
+        document.getElementById("ngContainer").style.display = "none";
+        document.getElementById("ngPercentContainer").style.display = "none";
+      }
+    }
+
+    async function exportToExcel() {
+      if (userRole === 'status') {
+        showMessage("Tryb podglądu - eksport zablokowany", "error", 3000);
+        return;
+      }
+      
+      // Sprawdź czy XLSX jest załadowane
+      if (!xlsxLoaded || typeof XLSX === 'undefined') {
+        try {
+          await loadXLSXLibrary();
+        } catch (error) {
+          showMessage("Błąd ładowania biblioteki XLSX", "error", 3000);
+          return;
+        }
+      }
+
+      const currentData = currentMode === 'rework' ? reworkData : scanData;
+      
+      if (currentData.length === 0) {
+        showMessage("Brak danych do eksportu", "error", 3000);
+        return;
+      }
+
+      const name = reworkNameInput.value.trim() || (currentMode === 'rework' ? 'rework' : 'scan');
+      const inspector = inspectorInput.value.trim() || 'nieznany';
+      
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const fileName = `${name}_${inspector}_${dateStr}.xlsx`;
+      const wb = XLSX.utils.book_new();
+      
+      if (currentMode === 'rework') {
+        const headerData = [
+          [`Nazwa: ${name || 'Brak danych'}`],
+          [`Inspektor: ${inspector || 'Brak danych'}`],
+          [`Data eksportu: ${new Date().toLocaleString()}`],
+          [`Tryb: Rework`],
+          [],
+          ["Kod", "Status", "Inspektor", "Adnotacja", "Data"]
+        ];
+
+        const exportData = currentData;
+
+        const wsData = [
+          ...headerData,
+          ...exportData.map(entry => [
+            entry.code,
+            entry.status || "",
+            entry.inspector,
+            entry.note,
+            entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ""
+          ])
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        if (!ws['!merges']) ws['!merges'] = [];
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
+        ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 4 } });
+        ws['!merges'].push({ s: { r: 2, c: 0 }, e: { r: 2, c: 4 } });
+        ws['!merges'].push({ s: { r: 3, c: 0 }, e: { r: 3, c: 4 } });
+        ws['!merges'].push({ s: { r: 4, c: 0 }, e: { r: 4, c: 4 } });
+
+        XLSX.utils.book_append_sheet(wb, ws, "Skanowanie");
+      } else {
+        const exportData = currentData
+          .filter(item => item.status !== "" && item.status !== "Nie zeskanowano")
+          .map(item => [item.code]);
+
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        XLSX.utils.book_append_sheet(wb, ws, "Skanowanie");
+      }
+
+      XLSX.writeFile(wb, fileName);
+    }
+
+    async function resetAll() {
+      if (userRole === 'status') {
+        showMessage("Tryb podglądu - reset zablokowany", "error", 3000);
+        return;
+      }
+      
+      if (confirm("Czy na pewno chcesz wyczyścić wszystkie dane w bieżącym trybie?")) {
+        const dataType = currentMode === 'rework' ? 'rework' : 'scan';
+        const success = await saveToFirebase(dataType, []);
+        
+        if (success) {
+          if (currentMode === 'rework') {
+            reworkData = [];
+          } else {
+            scanData = [];
+          }
+          
+          renderTable();
+          updateStats();
+          showMessage("Wyczyszczono wszystkie dane", "success", 3000);
+        }
+      }
+    }
+
+    function showMessage(msg, type = "info", duration = 3000) {
+      message.className = "message";
+      message.classList.add(type);
+      message.textContent = msg;
+      if (duration > 0) {
+        setTimeout(() => {
+          message.textContent = "";
+          message.className = "message";
+        }, duration);
+      }
+    }
+
+    // ==================== INICJALIZACJA ====================
+    window.onload = function() {
+      // W tle ładujemy XLSX
+      loadXLSXLibrary().catch(error => {
+        console.warn('Nie udało się załadować XLSX:', error);
+      });
+      
+      // Nasłuchiwacz dla klawisza Enter na ekranie logowania
+      document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          login();
+        }
+      });
+      document.getElementById('loginEmail').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          document.getElementById('loginPassword').focus();
+        }
+      });
+    };
+  </script>
+</body>
+</html>
